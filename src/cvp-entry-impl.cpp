@@ -20,7 +20,7 @@ namespace free_audio::cvp
 {
 namespace detail
 {
-uint32_t clap_get_plugin_count(const clap_plugin_factory *) { return 2; };
+uint32_t clap_get_plugin_count(const clap_plugin_factory *) { return pluginCount; };
 const clap_plugin_descriptor *clap_get_plugin_descriptor(const clap_plugin_factory *f, uint32_t idx)
 {
     assert(idx < clap_get_plugin_count(f));

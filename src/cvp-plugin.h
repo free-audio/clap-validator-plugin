@@ -24,6 +24,7 @@ enum ValidatorFlavor
     NoteGenerator = 2,   // no audio, note out
     NoteTransformer = 3, // no audio, note in-out
 };
+static constexpr uint32_t pluginCount{4};
 
 const clap_plugin_descriptor *getDescriptor(ValidatorFlavor);
 const clap_plugin *makePlugin(const clap_host *, ValidatorFlavor);
