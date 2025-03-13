@@ -46,5 +46,5 @@ jobs:
 
       - name: Build release version
         run: |
-          cmake -S . -B ./build ${{ matrix.cmake_args }} -DCMAKE_BUILD_TYPE=Release -DCOPY_AFTER_BUILD=FALSE -DGITHUB_ACTIONS_BUILD=TRUE
-          cmake --build ./build --config Release --target six-sines_all --parallel 3
+          cmake -S . -B ./build ${{ matrix.cmake_args }} -DCMAKE_BUILD_TYPE=Release -DCOPY_AFTER_BUILD=FALSE
+          cmake --build ./build --config Release --target clap-validator-plugin_all --parallel 3
