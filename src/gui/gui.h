@@ -38,7 +38,13 @@ struct GuiProvider
         logFn(s, res.c_str());
     }
 
-    virtual bool setParent(const clap_window_t *parent) { return false; }
+    virtual bool setParent(const clap_window_t *parent)
+    {
+        logFmt(CLAP_LOG_ERROR,
+               "setParent called on gui base class - this should never happen. {}:{}", __FILE__,
+               __LINE__);
+        return false;
+    }
 };
 
 inline bool implementsGui()
