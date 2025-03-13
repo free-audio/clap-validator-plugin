@@ -1,0 +1,50 @@
+name: Build Clap Validator Plugin
+on:
+  #push:
+  #  branches:
+  #    - main
+  #    - rel_*
+  #    - test/*
+  #  tags:
+  #    - 'v**'
+  pull_request:
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build_plugin:
+    name: Build - ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows-x64
+            cmake_args: -DCMAKE_CXX_COMPLIER=clang++ -DCMAKE_C_COMPILER=clang -GNinja
+
+          - os: macos-latest
+            name: macos
+            cmake_args: -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -GNinja
+
+          - os: ubuntu-latest
+            name: linux-x64
+            cmake_args: -GNinja
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Build release version
+        run: |
+          cmake -S . -B ./build ${{ matrix.cmake_args }} -DCMAKE_BUILD_TYPE=Release -DCOPY_AFTER_BUILD=FALSE -DGITHUB_ACTIONS_BUILD=TRUE
+          cmake --build ./build --config Release --target six-sines_all --parallel 3
