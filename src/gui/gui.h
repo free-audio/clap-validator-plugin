@@ -14,6 +14,7 @@
 #define FREEAUDIO_CVP_GUI_GUI_H
 
 #include <memory>
+#include <string>
 #include <clap/clap.h>
 #include <functional>
 
