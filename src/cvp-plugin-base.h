@@ -53,6 +53,41 @@ struct CVPClap : public plugHelper_t
     detail::spsc_lockfree_queue<clap_event_transport, 1024> transportQueue;
 
   protected:
+    bool init() noexcept override
+    {
+        logFmt(CLAP_LOG_INFO, "init");
+
+        auto probe = [this](auto ext)
+        {
+            if (_host.host()->get_extension(_host.host(), ext))
+            {
+                logFmt(CLAP_LOG_INFO, "Supports Extension: {}", ext);
+            }
+            else
+            {
+                logFmt(CLAP_LOG_INFO, "Missing Extension: {}", ext);
+            }
+        };
+        probe(CLAP_EXT_PARAMS);
+        probe(CLAP_EXT_GUI);
+        probe(CLAP_EXT_STATE);
+        return true;
+    }
+    bool activate(double sampleRate, uint32_t minFrameCount,
+                  uint32_t maxFrameCount) noexcept override
+    {
+        logFmt(CLAP_LOG_INFO, "{} sampleRate={} minFrameCount={} maxFrameCount={}", __func__,
+               sampleRate, minFrameCount, maxFrameCount);
+        return true;
+    }
+    void deactivate() noexcept override { logFmt(CLAP_LOG_INFO, "{}", __func__); }
+    bool startProcessing() noexcept override
+    {
+        logFmt(CLAP_LOG_INFO, "{}", __func__);
+        return true;
+    }
+    void stopProcessing() noexcept override { logFmt(CLAP_LOG_INFO, "{}", __func__); }
+
     std::mutex logLinesMutex;
     void logTee(clap_log_severity severity, const char *msg) const noexcept override
     {
