@@ -48,8 +48,8 @@ make_clapfirst_plugins(
 
         ASSET_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME}_assets
 
-        STANDALONE_CONFIGURATIONS
-            standalone-stereo-generator "ClapValidatorStandalone" "org.free-audio.cvp.stereo-generator"
+        # STANDALONE_CONFIGURATIONS
+        #    standalone-stereo-generator "ClapValidatorStandalone" "org.free-audio.cvp.stereo-generator"
 )
 
 
