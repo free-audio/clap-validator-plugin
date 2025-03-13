@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.28)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-set(CMAKE_OSX_DEPLOYMENT_TARGET 10.14 CACHE STRING "Build for 10.14")
+set(CMAKE_OSX_DEPLOYMENT_TARGET 10.15 CACHE STRING "Build for 10.14")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 
@@ -47,6 +47,9 @@ make_clapfirst_plugins(
         PLUGIN_FORMATS CLAP # VST3 AUV2
 
         ASSET_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME}_assets
+
+        STANDALONE_CONFIGURATIONS
+            standalone-stereo-generator "ClapValidatorStandalone" "org.free-audio.cvp.stereo-generator"
 )
 
 

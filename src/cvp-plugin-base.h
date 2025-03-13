@@ -17,8 +17,11 @@
 #include <clap/helpers/plugin.hxx>
 #include <clap/helpers/host-proxy.hxx>
 
+#include "cvp-plugin.h"
+#include "clap/helpers/param-queue.hh"
 #include "gui/gui.h"
 #include <fmt/core.h>
+#include "spsc-lock-free-queue.h"
 
 namespace free_audio::cvp
 {
@@ -28,11 +31,16 @@ static constexpr clap::helpers::CheckingLevel checkLevel = clap::helpers::Checki
 
 using plugHelper_t = clap::helpers::Plugin<misLevel, checkLevel>;
 
-template <enum ValidatorFlavor flavor> struct CVPClap : public plugHelper_t
+struct CVPClap : public plugHelper_t
 {
-    CVPClap(const clap_host *h) : plugHelper_t(getDescriptor(flavor), h) {}
+    ValidatorFlavor flavor;
+    CVPClap(const clap_host *h, ValidatorFlavor inFlavor)
+        : flavor(inFlavor), plugHelper_t(getDescriptor(inFlavor), h)
+    {
+        logFmt(CLAP_LOG_INFO, "CVPClap created: Flavor={} Name={}", (int)flavor,
+               getDescriptor(flavor)->name);
+    }
 
-  protected:
     // This is not exactly realtime safe
     template <typename... Args>
     void logFmt(clap_log_severity s, const char *fmt, Args &&...args) const noexcept
@@ -41,30 +49,47 @@ template <enum ValidatorFlavor flavor> struct CVPClap : public plugHelper_t
         log(s, res.c_str());
     }
 
+    std::vector<std::string> logLines;
+    detail::spsc_lockfree_queue<clap_event_transport, 1024> transportQueue;
+
+  protected:
+    std::mutex logLinesMutex;
     void logTee(clap_log_severity severity, const char *msg) const noexcept override
     {
+        std::ostringstream oss;
         switch (severity)
         {
         case CLAP_LOG_INFO:
-            std::cout << "[INFO   ] ";
+            oss << "[INFO   ] ";
             break;
         case CLAP_LOG_WARNING:
-            std::cout << "[WARNING] ";
+            oss << "[WARNING] ";
             break;
         case CLAP_LOG_ERROR:
-            std::cout << "[ERROR  ] ";
+            oss << "[ERROR  ] ";
             break;
         case CLAP_LOG_DEBUG:
-            std::cout << "[DEBUG  ] ";
+            oss << "[DEBUG  ] ";
             break;
         default:
-            std::cout << "[UNKNOWN] ";
+            oss << "[UNKNOWN] ";
             return;
         }
-        std::cout << msg << std::endl;
+        oss << msg;
+        std::cout << oss.str() << std::endl;
+
+        // This is so gross. log functions are only const in the most
+        // c++-thinks-sideeffects-are-free sense but that has sort of polluted the clap helpers api.
+        // So
+        auto *ncv = const_cast<CVPClap *>(this);
+        std::lock_guard<std::mutex> lock(ncv->logLinesMutex);
+        ncv->logLines.push_back(oss.str());
+        if (guiProvider)
+            guiProvider->logDirty = true;
     }
     bool implementsAudioPorts() const noexcept override
     {
+        logFmt(CLAP_LOG_INFO, "{}", __func__);
         switch (flavor)
         {
         case ValidatorFlavor::StereoEffect:
@@ -76,6 +101,7 @@ template <enum ValidatorFlavor flavor> struct CVPClap : public plugHelper_t
     }
     uint32_t audioPortsCount(bool isInput) const noexcept override
     {
+        logFmt(CLAP_LOG_INFO, "{} isInput={}", __func__, isInput);
         switch (flavor)
         {
         case ValidatorFlavor::StereoEffect:
@@ -91,6 +117,7 @@ template <enum ValidatorFlavor flavor> struct CVPClap : public plugHelper_t
     bool audioPortsInfo(uint32_t index, bool isInput,
                         clap_audio_port_info *info) const noexcept override
     {
+        logFmt(CLAP_LOG_INFO, "{} index={} isInput={}", __func__, index, isInput);
         if (index != 0)
             hostMisbehaving("Invalid audio ports index");
         if (isInput && flavor == ValidatorFlavor::StereoGenerator)
@@ -107,12 +134,15 @@ template <enum ValidatorFlavor flavor> struct CVPClap : public plugHelper_t
 
     bool implementsNotePorts() const noexcept override
     {
+        logFmt(CLAP_LOG_INFO, "{}", __func__);
         if (flavor == ValidatorFlavor::StereoEffect)
             return false;
         return true;
     }
     uint32_t notePortsCount(bool isInput) const noexcept override
     {
+        logFmt(CLAP_LOG_INFO, "{} isInput={}", __func__, isInput);
+
         if (flavor == ValidatorFlavor::StereoEffect)
             hostMisbehaving("NotePorts Count should not be called with stereo effect");
         switch (flavor)
@@ -131,6 +161,8 @@ template <enum ValidatorFlavor flavor> struct CVPClap : public plugHelper_t
     bool notePortsInfo(uint32_t index, bool isInput,
                        clap_note_port_info *info) const noexcept override
     {
+        logFmt(CLAP_LOG_INFO, "{} index={} isInput={}", __func__, index, isInput);
+
         if (flavor == ValidatorFlavor::StereoEffect)
             hostMisbehaving("NotePorts Info shoould not be called with stereo effect");
         if (isInput && flavor == ValidatorFlavor::NoteGenerator)
@@ -170,25 +202,59 @@ template <enum ValidatorFlavor flavor> struct CVPClap : public plugHelper_t
             hostMisbehaving("Gui API not supported");
             return false;
         }
-        guiProvider = gui::createGuiProvider([this](auto a, auto b) { log(a, b.c_str()); });
+        guiProvider = gui::createGuiProvider(this);
         return guiProvider != nullptr;
     }
     void guiDestroy() noexcept override { guiProvider.reset(); }
-    bool guiSetScale(double scale) noexcept override { return false; }
-    bool guiShow() noexcept override { return false; }
 
-    bool guiHide() noexcept override { return false; }
+    bool guiSetScale(double scale) noexcept override
+    {
+        logFmt(CLAP_LOG_INFO, "Gui SetScale {}", scale);
+        return guiProvider && guiProvider->setScale(scale);
+    }
+    bool guiShow() noexcept override
+    {
+        logFmt(CLAP_LOG_INFO, "Gui Show");
+        return guiProvider && guiProvider->show();
+    }
+
+    bool guiHide() noexcept override
+    {
+        logFmt(CLAP_LOG_INFO, "Gui Hide");
+        return guiProvider && guiProvider->hide();
+    }
     bool guiGetSize(uint32_t *width, uint32_t *height) noexcept override
     {
-        *width = 800;
-        *height = 640;
-        return true;
+        logFmt(CLAP_LOG_INFO, "Gui GetSize");
+        return guiProvider && guiProvider->getSize(width, height);
     }
-    bool guiCanResize() const noexcept override { return false; }
-    // bool guiGetResizeHints(clap_gui_resize_hints_t *hints) noexcept override;
-    // bool guiAdjustSize(uint32_t *width, uint32_t *height) noexcept override;
-    // bool guiSetSize(uint32_t width, uint32_t height) noexcept override;
-    // void guiSuggestTitle(const char *title) noexcept override;
+    bool guiCanResize() const noexcept override
+    {
+        logFmt(CLAP_LOG_INFO, "Gui CanResize");
+        return guiProvider && guiProvider->canResize();
+    }
+    bool guiGetResizeHints(clap_gui_resize_hints_t *hints) noexcept override
+    {
+        logFmt(CLAP_LOG_INFO, "Gui GetResizeHints");
+        return guiProvider && guiProvider->getResizeHints(hints);
+    }
+    bool guiAdjustSize(uint32_t *width, uint32_t *height) noexcept override
+    {
+        logFmt(CLAP_LOG_INFO, "Gui AdjustSize");
+        return guiProvider && guiProvider->adjustSize(width, height);
+    }
+    bool guiSetSize(uint32_t width, uint32_t height) noexcept override
+    {
+        logFmt(CLAP_LOG_INFO, "Gui SetSize w={} h={}", width, height);
+        return guiProvider && guiProvider->setSize(width, height);
+    }
+    void guiSuggestTitle(const char *title) noexcept override
+    {
+        logFmt(CLAP_LOG_INFO, "Gui SuggestTitle {}", title);
+        if (!guiProvider)
+            return;
+        guiProvider->suggestTitle(title);
+    }
     bool guiSetParent(const clap_window *window) noexcept override
     {
         if (!guiProvider)
@@ -198,6 +264,26 @@ template <enum ValidatorFlavor flavor> struct CVPClap : public plugHelper_t
         }
         return guiProvider->setParent(window);
     }
+
+    uint32_t processEvery{0};
+    void processPrecursor(const clap_process_t *proc)
+    {
+        if ((processEvery == 0) && proc->transport && guiProvider)
+        {
+            transportQueue.enqueue(*(proc->transport));
+        }
+        processEvery = (processEvery + 1) & (16 - 1);
+    }
 };
+
+namespace gui
+{
+template <typename... Args>
+void GuiProvider::logFmt(clap_log_severity s, const char *fmt, Args &&...args) const noexcept
+{
+    if (parent)
+        parent->logFmt(s, fmt, std::forward<Args>(args)...);
+}
+} // namespace gui
 } // namespace free_audio::cvp
 #endif // CVP_PLUGIN_BASE_H

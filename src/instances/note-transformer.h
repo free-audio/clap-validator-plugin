@@ -17,11 +17,18 @@
 
 namespace free_audio::cvp
 {
-struct NoteTransformerPlugin : CVPClap<ValidatorFlavor::NoteTransformer>
+struct NoteTransformerPlugin : CVPClap
 {
     explicit NoteTransformerPlugin(const clap_host_t *host)
-        : CVPClap<ValidatorFlavor::NoteTransformer>(host)
+        : CVPClap(host, ValidatorFlavor::NoteTransformer)
     {
+    }
+
+    clap_process_status process(const clap_process *process) noexcept override
+    {
+        processPrecursor(process);
+
+        return CLAP_PROCESS_CONTINUE;
     }
 };
 } // namespace free_audio::cvp

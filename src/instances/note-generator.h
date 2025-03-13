@@ -17,10 +17,10 @@
 
 namespace free_audio::cvp
 {
-struct NoteGeneratorPlugin : CVPClap<ValidatorFlavor::NoteGenerator>
+struct NoteGeneratorPlugin : CVPClap
 {
     explicit NoteGeneratorPlugin(const clap_host_t *host)
-        : CVPClap<ValidatorFlavor::NoteGenerator>(host)
+        : CVPClap(host, ValidatorFlavor::NoteGenerator)
     {
     }
 
@@ -32,6 +32,7 @@ struct NoteGeneratorPlugin : CVPClap<ValidatorFlavor::NoteGenerator>
     bool isNoteOn{false};
     clap_process_status process(const clap_process *process) noexcept override
     {
+        processPrecursor(process);
         if (process->transport && (process->transport->flags & CLAP_TRANSPORT_IS_PLAYING))
         {
             auto bt = 1.0 * process->transport->song_pos_beats / CLAP_BEATTIME_FACTOR;

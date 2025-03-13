@@ -17,11 +17,18 @@
 
 namespace free_audio::cvp
 {
-struct StereoEffectPlugin : CVPClap<ValidatorFlavor::StereoEffect>
+struct StereoEffectPlugin : CVPClap
 {
     explicit StereoEffectPlugin(const clap_host_t *host)
-        : CVPClap<ValidatorFlavor::StereoEffect>(host)
+        : CVPClap(host, ValidatorFlavor::StereoEffect)
     {
+    }
+
+    clap_process_status process(const clap_process *process) noexcept override
+    {
+        processPrecursor(process);
+
+        return CLAP_PROCESS_CONTINUE;
     }
 };
 } // namespace free_audio::cvp
