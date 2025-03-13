@@ -31,7 +31,7 @@ sub findfiles
 EOH
 
     $f = $File::Find::name;
-    if ($f =~ m/\.h$/ or $f =~ m/.cpp$/)
+    if ($f =~ m/\.h$/ or $f =~ m/.cpp$/ or $f =~m/.mm$/)
     {
         #To search the files inside the directories
         print "Processing $f\n";
