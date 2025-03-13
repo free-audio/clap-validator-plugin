@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <string>
+#include <atomic>
 #include <clap/clap.h>
 #include <functional>
 #include <fmt/core.h>
