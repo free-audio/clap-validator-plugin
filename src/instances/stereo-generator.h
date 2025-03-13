@@ -17,11 +17,17 @@
 
 namespace free_audio::cvp
 {
-struct StereoGeneratorPlugin : CVPClap<ValidatorFlavor::StereoGenerator>
+struct StereoGeneratorPlugin : CVPClap
 {
     explicit StereoGeneratorPlugin(const clap_host_t *host)
-        : CVPClap<ValidatorFlavor::StereoGenerator>(host)
+        : CVPClap(host, ValidatorFlavor::StereoGenerator)
     {
+    }
+
+    clap_process_status process(const clap_process *process) noexcept override
+    {
+        processPrecursor(process);
+        return CLAP_PROCESS_CONTINUE;
     }
 };
 } // namespace free_audio::cvp

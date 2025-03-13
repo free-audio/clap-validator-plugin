@@ -13,13 +13,13 @@
 #include "gui.h"
 #include <clap/clap.h>
 
+#include "cvp-plugin-base.h"
 namespace free_audio::cvp::gui
 {
 
-std::unique_ptr<GuiProvider>
-createGuiProvider(std::function<void(clap_log_severity, const std::string &)> logFn)
+std::unique_ptr<GuiProvider> createGuiProvider(CVPClap *clap)
 {
-    logFn(CLAP_LOG_WARNING, "GUI Unimplemented");
+    clap->logFmt(CLAP_LOG_WARNING, "GUI Unimplemented");
     return nullptr;
 }
 } // namespace free_audio::cvp::gui
