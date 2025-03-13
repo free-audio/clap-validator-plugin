@@ -12,42 +12,23 @@ option(COPY_AFTER_BUILD "Will copy after build" TRUE)
 option(USE_CLAP_FROM_NEXT "Use 'next' versions of clap, clap-wrapper and clap-helpers" FALSE)
 
 include(cmake/compile-options.cmake)
-
-include(FetchContent)
-
-# Grab clap, clap-helpers and clap-wrapper
-FetchContent_Declare(
-        clap
-        GIT_REPOSITORY https://github.com/free-audio/clap.git
-        GIT_TAG main
-)
-FetchContent_Declare(
-        clap-helpers
-        GIT_REPOSITORY https://github.com/free-audio/clap-helpers.git
-        GIT_TAG main
-)
-FetchContent_Declare(
-        clap-wrapper
-        GIT_REPOSITORY https://github.com/free-audio/clap-wrapper.git
-        GIT_TAG main
-)
-
-
-set(CLAP_WRAPPER_DOWNLOAD_DEPENDENCIES TRUE CACHE BOOL "Get em")
-set(CLAP_WRAPPER_DONT_ADD_TARGETS TRUE CACHE BOOL "I'll targetize")
-set(CLAP_WRAPPER_BUILD_AUV2 TRUE CACHE BOOL "It's only logical")
-if (APPLE)
-    # BaconPaul has jack kinda installed
-    set(RTAUDIO_API_JACK FALSE CACHE BOOL "Not on apple")
-endif()
-
-FetchContent_MakeAvailable(clap clap-helpers clap-wrapper)
+include(cmake/fetch-deps.cmake)
 
 add_library(${PROJECT_NAME}-impl STATIC src/cvp-entry-impl.cpp src/cvp-plugin.cpp)
 target_include_directories(${PROJECT_NAME}-impl PUBLIC src)
 target_link_libraries(${PROJECT_NAME}-impl PUBLIC clap)
-target_link_libraries(${PROJECT_NAME}-impl PRIVATE clap-helpers)
+target_link_libraries(${PROJECT_NAME}-impl PRIVATE clap-helpers fmt::fmt-header-only)
 
+if (WIN32)
+    target_compile_definitions(${PROJECT_NAME}-impl PRIVATE WIN32_GUI)
+    target_sources(${PROJECT_NAME}-impl PRIVATE src/gui/gui-unimpl.cpp)
+elseif (APPLE)
+    target_compile_definitions(${PROJECT_NAME}-impl PRIVATE COCOA_GUI)
+    target_sources(${PROJECT_NAME}-impl PRIVATE src/gui/gui-macos.mm)
+else()
+    target_compile_definitions(${PROJECT_NAME}-impl PRIVATE X11_GUI)
+    target_sources(${PROJECT_NAME}-impl PRIVATE src/gui/gui-unimpl.cpp)
+endif()
 
 make_clapfirst_plugins(
         TARGET_NAME ${PROJECT_NAME}

@@ -17,6 +17,9 @@
 #include <clap/helpers/plugin.hxx>
 #include <clap/helpers/host-proxy.hxx>
 
+#include "gui/gui.h"
+#include <fmt/core.h>
+
 namespace free_audio::cvp
 {
 static constexpr clap::helpers::MisbehaviourHandler misLevel =
@@ -30,9 +33,35 @@ template <enum ValidatorFlavor flavor> struct CVPClap : public plugHelper_t
     CVPClap(const clap_host *h) : plugHelper_t(getDescriptor(flavor), h) {}
 
   protected:
+    // This is not exactly realtime safe
+    template <typename... Args>
+    void logFmt(clap_log_severity s, const char *fmt, Args &&...args) const noexcept
+    {
+        auto res = fmt::format(fmt, std::forward<Args>(args)...);
+        log(s, res.c_str());
+    }
+
     void logTee(clap_log_severity severity, const char *msg) const noexcept override
     {
-        std::cout << (int)severity << " " << msg << std::endl;
+        switch (severity)
+        {
+        case CLAP_LOG_INFO:
+            std::cout << "[INFO   ] ";
+            break;
+        case CLAP_LOG_WARNING:
+            std::cout << "[WARNING] ";
+            break;
+        case CLAP_LOG_ERROR:
+            std::cout << "[ERROR  ] ";
+            break;
+        case CLAP_LOG_DEBUG:
+            std::cout << "[DEBUG  ] ";
+            break;
+        default:
+            std::cout << "[UNKNOWN] ";
+            return;
+        }
+        std::cout << msg << std::endl;
     }
     bool implementsAudioPorts() const noexcept override
     {
@@ -115,6 +144,59 @@ template <enum ValidatorFlavor flavor> struct CVPClap : public plugHelper_t
         info->preferred_dialect = CLAP_NOTE_DIALECT_CLAP;
         strncpy(info->name, isInput ? "Note Input" : "Note Output", CLAP_NAME_SIZE - 1);
         return true;
+    }
+
+    bool implementsGui() const noexcept override { return gui::implementsGui(); }
+    bool guiIsApiSupported(const char *api, bool isFloating) noexcept override
+    {
+        if (isFloating)
+            return false;
+
+#if COCOA_GUI
+        return strcmp(api, CLAP_WINDOW_API_COCOA) == 0;
+#endif
+
+        log(CLAP_LOG_INFO, "Implement gui outside macos");
+        return false;
+    }
+
+    std::unique_ptr<gui::GuiProvider> guiProvider;
+    bool guiCreate(const char *api, bool isFloating) noexcept override
+    {
+        logFmt(CLAP_LOG_INFO, "{} api={} isFloating={}", __func__, api,
+               isFloating ? "floating" : "non-floating");
+        if (!guiIsApiSupported(api, isFloating))
+        {
+            hostMisbehaving("Gui API not supported");
+            return false;
+        }
+        guiProvider = gui::createGuiProvider([this](auto a, auto b) { log(a, b.c_str()); });
+        return guiProvider != nullptr;
+    }
+    void guiDestroy() noexcept override { guiProvider.reset(); }
+    bool guiSetScale(double scale) noexcept override { return false; }
+    bool guiShow() noexcept override { return false; }
+
+    bool guiHide() noexcept override { return false; }
+    bool guiGetSize(uint32_t *width, uint32_t *height) noexcept override
+    {
+        *width = 800;
+        *height = 640;
+        return true;
+    }
+    bool guiCanResize() const noexcept override { return false; }
+    // bool guiGetResizeHints(clap_gui_resize_hints_t *hints) noexcept override;
+    // bool guiAdjustSize(uint32_t *width, uint32_t *height) noexcept override;
+    // bool guiSetSize(uint32_t width, uint32_t height) noexcept override;
+    // void guiSuggestTitle(const char *title) noexcept override;
+    bool guiSetParent(const clap_window *window) noexcept override
+    {
+        if (!guiProvider)
+        {
+            hostMisbehaving("Gui not created");
+            return false;
+        }
+        return guiProvider->setParent(window);
     }
 };
 } // namespace free_audio::cvp
