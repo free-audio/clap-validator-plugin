@@ -74,6 +74,8 @@ inline bool implementsGui()
 {
 #if COCOA_GUI
     return true;
+#elif WIN32
+    return true;
 #else
     return false;
 #endif

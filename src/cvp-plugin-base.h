@@ -222,8 +222,11 @@ struct CVPClap : public plugHelper_t
 #if COCOA_GUI
         return strcmp(api, CLAP_WINDOW_API_COCOA) == 0;
 #endif
+#if WIN32
+        return strcmp(api, CLAP_WINDOW_API_WIN32) == 0;
+#endif
 
-        log(CLAP_LOG_INFO, "Implement gui outside macos");
+        log(CLAP_LOG_INFO, "Implement gui outside macos/win32");
         return false;
     }
 
