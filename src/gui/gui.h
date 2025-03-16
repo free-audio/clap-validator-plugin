@@ -66,7 +66,7 @@ struct GuiProvider
                            transport.song_pos_beats * 1.0 / CLAP_BEATTIME_FACTOR,
                            transport.song_pos_seconds * 1.0 / CLAP_BEATTIME_FACTOR,
                            transport.flags & CLAP_TRANSPORT_IS_PLAYING ? "Playing" : "Stopped",
-                           transport.flags & CLAP_TRANSPORT_IS_RECORDING ? "and Recording" : ""
+                           transport.flags & CLAP_TRANSPORT_IS_RECORDING ? "& Recording" : ""
           );
     }
 

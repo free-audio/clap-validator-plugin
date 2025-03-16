@@ -45,13 +45,14 @@ struct Win32View
     void addTextView(RECT frame)
     {
         RECT tr = {0,0, frame.right-frame.left, frame.bottom-frame.top};
-        _textview = CreateWindowEx(NULL, _T("STATIC"), "", WS_CHILD | WS_VISIBLE, tr.left, tr.top,
+        _textview = CreateWindowEx(NULL, _T("STATIC"), "", WS_CHILD | WS_VISIBLE | SS_NOPREFIX 
+          , tr.left, tr.top,
                                    tr.right - tr.left, 100, this->_self, 0, 0, NULL);
         SetWindowText(_textview, _T("no transport"));
 
         _scrollview = CreateWindowEx(NULL, _T("EDIT"), "", 
-          WS_CHILD | WS_VISIBLE | WS_VSCROLL |
-          ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL,
+          WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_MULTILINE |
+                                         ES_AUTOVSCROLL | SS_NOPREFIX,
           tr.left, tr.top+100,
           tr.right - tr.left, (tr.bottom - tr.top-100), this->_self, 0, 0, NULL);
 
