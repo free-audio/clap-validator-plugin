@@ -21,7 +21,7 @@ target_link_libraries(${PROJECT_NAME}-impl PRIVATE clap-helpers fmt::fmt-header-
 
 if (WIN32)
     target_compile_definitions(${PROJECT_NAME}-impl PRIVATE WIN32_GUI)
-    target_sources(${PROJECT_NAME}-impl PRIVATE src/gui/gui-unimpl.cpp)
+    target_sources(${PROJECT_NAME}-impl PRIVATE src/gui/gui-win32.cpp)
 elseif (APPLE)
     target_compile_definitions(${PROJECT_NAME}-impl PRIVATE COCOA_GUI)
     target_sources(${PROJECT_NAME}-impl PRIVATE src/gui/gui-macos.mm)

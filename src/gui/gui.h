@@ -62,9 +62,12 @@ struct GuiProvider
 
     std::string transportString(const clap_event_transport &transport) const
     {
-        return fmt::format("beats: {} seconds: {}",
+        return fmt::format("beats: {} seconds: {}\nState {} {}",
                            transport.song_pos_beats * 1.0 / CLAP_BEATTIME_FACTOR,
-                           transport.song_pos_seconds * 1.0 / CLAP_BEATTIME_FACTOR);
+                           transport.song_pos_seconds * 1.0 / CLAP_BEATTIME_FACTOR,
+                           transport.flags & CLAP_TRANSPORT_IS_PLAYING ? "Playing" : "Stopped",
+                           transport.flags & CLAP_TRANSPORT_IS_RECORDING ? "& Recording" : ""
+          );
     }
 
     std::atomic<bool> logDirty{false};
@@ -73,6 +76,8 @@ struct GuiProvider
 inline bool implementsGui()
 {
 #if COCOA_GUI
+    return true;
+#elif WIN32
     return true;
 #else
     return false;
