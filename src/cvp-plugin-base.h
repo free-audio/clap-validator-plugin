@@ -72,7 +72,8 @@ struct CVPClap : public plugHelper_t
         probe(CLAP_EXT_GUI);
         probe(CLAP_EXT_STATE);
         probe(CLAP_EXT_WEBVIEW);
-        hostExtWebview = (clap_host_webview *)_host.host()->get_extension(_host.host(), CLAP_EXT_WEBVIEW);
+        hostExtWebview =
+            (clap_host_webview *)_host.host()->get_extension(_host.host(), CLAP_EXT_WEBVIEW);
         return true;
     }
     bool activate(double sampleRate, uint32_t minFrameCount,
@@ -317,26 +318,57 @@ struct CVPClap : public plugHelper_t
         }
         processEvery = (processEvery + 1) & (16 - 1);
     }
-    
-	clap_host_webview *hostExtWebview = nullptr;
-	const void *extension(const char *id) noexcept override {
-		if (!std::strcmp(id, CLAP_EXT_WEBVIEW)) {
-			static const clap_plugin_webview ext{&webview_provide_starting_uri, &webview_receive};
-			return &ext;
-		}
-		return nullptr;
-	}
 
-	static bool webview_provide_starting_uri(const clap_plugin_t *plugin, char *buffer, uint32_t capacity) {
-		auto &self = *(CVPClap *)&from(plugin);
-		std::strncpy(buffer, "data:text/html,<body bgcolor='red'>", capacity);
-		return true;
-	}
-	static bool webview_receive(const clap_plugin_t *plugin, const void *buffer, uint32_t size) {
-		auto &self = *(CVPClap *)&from(plugin);
-		self.logFmt(CLAP_LOG_INFO, "Received {} bytes from webview", size);
-		return true;
-	}
+    clap_host_webview *hostExtWebview = nullptr;
+    const void *extension(const char *id) noexcept override
+    {
+        if (!std::strcmp(id, CLAP_EXT_WEBVIEW))
+        {
+            static const clap_plugin_webview ext{&webview_provide_starting_uri, &webview_receive};
+            return &ext;
+        }
+        return nullptr;
+    }
+
+    static bool webview_provide_starting_uri(const clap_plugin_t *plugin, char *buffer,
+                                             uint32_t capacity)
+    {
+        auto &self = *(CVPClap *)&from(plugin);
+        std::strncpy(buffer,
+                     "data:text/html,<body bgcolor='white'><pre id='logLines'></pre><script>let "
+                     "lineCount=0;setInterval(_=>parent.postMessage(new "
+                     "Uint32Array([lineCount]).buffer,'*'),100);addEventListener('message',e=>{let "
+                     "lines=new "
+                     "TextDecoder('latin1').decode(e.data);logLines.append(lines);lineCount+=lines."
+                     "split('\\n').length-1;})</script>",
+                     capacity);
+        return true;
+    }
+    static bool webview_receive(const clap_plugin_t *plugin, const void *buffer, uint32_t size)
+    {
+        auto &self = *(CVPClap *)&from(plugin);
+        if (size == 4)
+        {
+            auto *intBuffer = (uint32_t *)buffer;
+            auto startIndex = *intBuffer;
+
+            if (self.hostExtWebview)
+            {
+                std::string lines;
+                {
+                    std::lock_guard<std::mutex> guard(self.logLinesMutex);
+                    std::ostringstream oss;
+                    for (uint32_t i = startIndex; i < self.logLines.size(); ++i)
+                    {
+                        oss << self.logLines[i] << "\n";
+                    }
+                    lines = oss.str();
+                }
+                return self.hostExtWebview->send(self._host.host(), lines.c_str(), lines.size());
+            }
+        }
+        return false;
+    }
 };
 
 namespace gui
