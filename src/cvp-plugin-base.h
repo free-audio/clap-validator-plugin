@@ -334,14 +334,16 @@ struct CVPClap : public plugHelper_t
                                              uint32_t capacity)
     {
         auto &self = *(CVPClap *)&from(plugin);
-        std::strncpy(buffer,
-                     "data:text/html,<body bgcolor='white'><pre id='logLines'></pre><script>let "
-                     "lineCount=0;setInterval(_=>parent.postMessage(new "
-                     "Uint32Array([lineCount]).buffer,'*'),100);addEventListener('message',e=>{let "
-                     "lines=new "
-                     "TextDecoder('latin1').decode(e.data);logLines.append(lines);lineCount+=lines."
-                     "split('\\n').length-1;})</script>",
-                     capacity);
+        std::strncpy(
+            buffer,
+            "data:text/html,<body bgcolor='white'><pre id='logLines'></pre><script>"
+            "let lineCount=0;"
+            "setInterval(_=>parent.postMessage(new Uint32Array([lineCount]).buffer,'*'),100);"
+            "addEventListener('message',e=>{"
+            "let lines=new TextDecoder('latin1').decode(e.data);"
+            "logLines.append(lines);lineCount+=lines.split('\\n').length-1;"
+            "});</script>",
+            capacity);
         return true;
     }
     static bool webview_receive(const clap_plugin_t *plugin, const void *buffer, uint32_t size)
