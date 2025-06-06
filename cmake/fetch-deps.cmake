@@ -4,8 +4,8 @@ include(FetchContent)
 # Grab clap, clap-helpers and clap-wrapper
 FetchContent_Declare(
         clap
-        GIT_REPOSITORY https://github.com/free-audio/clap.git
-        GIT_TAG main
+        GIT_REPOSITORY https://github.com/geraintluff/clap.git
+        GIT_TAG draft/web
 )
 FetchContent_Declare(
         clap-helpers

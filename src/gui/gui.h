@@ -79,6 +79,8 @@ inline bool implementsGui()
     return true;
 #elif WIN32
     return true;
+#elif WEBVIEW_GUI
+    return true;
 #else
     return false;
 #endif
