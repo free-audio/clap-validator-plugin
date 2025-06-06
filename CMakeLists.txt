@@ -26,6 +26,9 @@ elseif (APPLE)
     target_compile_definitions(${PROJECT_NAME}-impl PRIVATE COCOA_GUI)
     target_sources(${PROJECT_NAME}-impl PRIVATE src/gui/gui-macos.mm)
     target_link_libraries(${PROJECT_NAME}-impl PRIVATE "-framework Cocoa" "-framework CoreFoundation")
+elseif (EMSCRIPTEN)
+    target_compile_definitions(${PROJECT_NAME}-impl PRIVATE WEBVIEW_GUI)
+    target_sources(${PROJECT_NAME}-impl PRIVATE src/gui/gui-unimpl.cpp)
 else()
     target_compile_definitions(${PROJECT_NAME}-impl PRIVATE X11_GUI)
     target_sources(${PROJECT_NAME}-impl PRIVATE src/gui/gui-unimpl.cpp)
@@ -44,7 +47,7 @@ make_clapfirst_plugins(
 
         COPY_AFTER_BUILD ${COPY_AFTER_BUILD}
 
-        PLUGIN_FORMATS CLAP # VST3 AUV2
+        PLUGIN_FORMATS CLAP WCLAP # VST3 AUV2
 
         ASSET_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME}_assets
 
