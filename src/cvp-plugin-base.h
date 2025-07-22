@@ -71,7 +71,6 @@ struct CVPClap : public plugHelper_t
         probe(CLAP_EXT_PARAMS);
         probe(CLAP_EXT_GUI);
         probe(CLAP_EXT_STATE);
-        probe(CLAP_EXT_WEBVIEW);
         hostExtWebview =
             (clap_host_webview *)_host.host()->get_extension(_host.host(), CLAP_EXT_WEBVIEW);
         return true;
@@ -225,11 +224,11 @@ struct CVPClap : public plugHelper_t
 #if COCOA_GUI
         return strcmp(api, CLAP_WINDOW_API_COCOA) == 0;
 #endif
-#if COCOA_WEBVIEW
-        return strcmp(api, CLAP_WINDOW_API_COCOA) == 0;
-#endif
 #if WIN32
         return strcmp(api, CLAP_WINDOW_API_WIN32) == 0;
+#endif
+#if WEBVIEW_GUI
+        return strcmp(api, CLAP_WINDOW_API_WEBVIEW) == 0;
 #endif
 
         log(CLAP_LOG_INFO, "Implement gui outside macos/win32");
