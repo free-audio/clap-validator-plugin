@@ -324,27 +324,28 @@ struct CVPClap : public plugHelper_t
     {
         if (!std::strcmp(id, CLAP_EXT_WEBVIEW))
         {
-            static const clap_plugin_webview ext{&webview_provide_starting_uri, &webview_receive};
+            static const clap_plugin_webview ext{&webview_get_uri, &webview_receive};
             return &ext;
         }
         return nullptr;
     }
 
-    static bool webview_provide_starting_uri(const clap_plugin_t *plugin, char *buffer,
-                                             uint32_t capacity)
+    static int32_t webview_get_uri(const clap_plugin_t *plugin, char *buffer, uint32_t capacity)
     {
         auto &self = *(CVPClap *)&from(plugin);
-        std::strncpy(
-            buffer,
-            "data:text/html,<body bgcolor='white'><pre id='logLines'></pre><script>"
-            "let lineCount=0;"
+        const char *dataUri =
+            "data:text/html,<body style='background:white;font-size:12px'><pre id='log'></pre>"
+            // Every 100ms, post back how many lines we've received
+            "<script>let lineCount=0;"
             "setInterval(_=>parent.postMessage(new Uint32Array([lineCount]).buffer,'*'),100);"
+		// Add all received messages as ASCII lines
             "addEventListener('message',e=>{"
             "let lines=new TextDecoder('latin1').decode(e.data);"
-            "logLines.append(lines);lineCount+=lines.split('\\n').length-1;"
-            "});</script>",
-            capacity);
-        return true;
+            "lineCount+=lines.split('\\n').length-1;"
+            "document.getElementById('log').append(lines);"
+            "});</script>";
+        std::strncpy(buffer, dataUri, capacity);
+        return std::strlen(dataUri);
     }
     static bool webview_receive(const clap_plugin_t *plugin, const void *buffer, uint32_t size)
     {
